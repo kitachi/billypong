@@ -1,0 +1,133 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <!-- test deploy env: cbstest2 rdc/nla123 /export/home/rdc/test -->
+  <!-- mvn -Denv=devel -DmainClass=au.gov.nla.kinetica.events.CBSEventLogger clean package -->
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>au.gov.nla</groupId>
+  <artifactId>eventsender</artifactId>
+  <version>2.0.2</version>
+  <packaging>jar</packaging>
+  
+  <repositories> <!-- REPOSITORIES -->
+    <repository>
+      <id>central</id>
+      <name>Maven Repository Switchboard</name>
+      <layout>default</layout>
+      <url>http://repo1.maven.org/maven2</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>  
+    </repository>    
+  </repositories>
+  
+  <pluginRepositories> <!-- PLUGIN REPOSITORIES -->
+    <pluginRepository>
+      <id>central</id>
+      <name>Maven Plugin Repository</name>
+      <url>http://repo1.maven.org/maven2</url>
+      <layout>default</layout>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <releases>
+        <updatePolicy>never</updatePolicy>
+      </releases>
+    </pluginRepository>
+  </pluginRepositories>
+  
+  <build>
+  	<finalName>${project.artifactId}-${project.version}</finalName>
+  	<sourceDirectory>${basedir}/src</sourceDirectory>
+  	<resources>
+      <resource>
+        <directory>${basedir}/mvn/${env}</directory>
+        <targetPath>${project.build.directory}/lib</targetPath>
+        <includes>
+          <include>*.properties</include>
+          <include>**/*.xml</include>
+        </includes>
+      </resource>
+      <resource>
+        <directory>${basedir}/scripts</directory>
+        <targetPath>${project.build.directory}/bin</targetPath>
+        <includes>
+          <include>*</include>
+        </includes>
+      </resource>
+      <resource>
+        <directory>${basedir}/scripts/${env}</directory>
+        <targetPath>${project.build.directory}/bin</targetPath>
+        <includes>
+          <include>*</include>
+        </includes>
+      </resource>
+    </resources>  	
+    <plugins>		
+  	  <plugin>
+  		<groupId>org.apache.maven.plugins</groupId>
+		<artifactId>maven-compiler-plugin</artifactId>
+		<version>2.3.2</version>
+	  </plugin>
+	  <plugin>
+	    <artifactId>maven-dependency-plugin</artifactId>
+	      <executions>
+	        <execution>
+	          <phase>package</phase>
+	          <goals>
+	            <goal>copy-dependencies</goal>
+	          </goals>
+	          <configuration>
+	            <outputDirectory>${project.build.directory}/lib</outputDirectory>
+	          </configuration>
+	        </execution>	        
+	      </executions>
+	  </plugin>
+	  <plugin>
+	    <groupId>org.apache.maven.plugins</groupId>
+	    <artifactId>maven-jar-plugin</artifactId>
+	    <version>2.4</version>
+	  </plugin>
+    </plugins>
+  </build>
+  
+  <dependencies>    
+	<dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <version>1.2.17</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>commons-beanutils</groupId>
+      <artifactId>commons-beanutils</artifactId>
+      <version>1.0</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>commons-digester</groupId>
+      <artifactId>commons-digester</artifactId>
+      <version>1.2</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>1.4</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>commons-logging</groupId>
+      <artifactId>commons-logging</artifactId>
+      <version>1.1</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>javax.mail</groupId>
+      <artifactId>mailapi</artifactId>
+      <version>1.4.2</version>
+      <scope>compile</scope>
+    </dependency>
+  </dependencies>
+  
+  
+  
+</project>

@@ -1,0 +1,14 @@
+#!/bin/bash
+#
+# Description: This script runs the EventSender Test
+#
+
+ES_HOME=/Users/szhou/Documents/workspace/ES
+ES_APP_TRG=$ES_HOME/target
+ES_APP_LIB=$ES_HOME/target/lib
+export ES_HOME ES_APP_TRG ES_APP_LIB
+
+CLASSPATH=$ES_HOME:$ES_APP_TRG/eventsender-2.0.2.jar:$ES_APP_LIB/activation-1.1.jar:$ES_APP_LIB/avalon-framework-4.1.3.jar:$ES_APP_LIB/commons-beanutils-1.0.jar:$ES_APP_LIB/commons-digester-1.2.jar:$ES_APP_LIB/commons-io-1.4.jar:$ES_APP_LIB/commons-logging-1.1.jar:$ES_APP_LIB/log4j-1.2.17.jar:$ES_APP_LIB/logkit-1.0.1.jar:$ES_APP_LIB/mailapi-1.4.2.jar:$ES_APP_LIB/servlet-api-2.3.jar
+export CLASSPATH
+
+  java -Dpname=EventSenderTest -Dlog4j.configuration=$CBS_PROPS_DIR/log4j.properties -cp $CLASSPATH au.gov.nla.kinetica.events.EventSender ClassCall szhou

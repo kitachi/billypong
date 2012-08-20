@@ -94,7 +94,7 @@ import au.gov.nla.kinetica.events.Event;
  *            that's more than a month old, i.e. no longer needed.
  * =============================================================================
  */
-public class EventSender implements IEventSender {
+public class EventSender {
 
 	/**
 	 * Default properties file name. The class loader will attempt to load this
@@ -146,45 +146,14 @@ public class EventSender implements IEventSender {
 			// initialize the EventSenderThread
 			if (useLinkedQ(_props)) {
 				int maxQSize = new Integer(_props.getProperty("MaxQSize"));
-				String bufferName = getAppBuffer();
-				est = EventSenderThread.getHelper(maxQSize, bufferName);
+				est = EventSenderThread.getHelper();
 			}
 
 			debugLog = Logger.getLogger(EventSender.class);
 			BasicConfigurator.configure();
 		}
 	}
-	
-	/**
-	 *  get the file name of the buffer cache for retrieve and store the unprocessed Q items
-	 */
-	public String getAppBuffer() {
-		ClassLoader sysClassLoader = EventSender.class.getClassLoader();
-		URL[] urls = ((URLClassLoader) sysClassLoader).getURLs();
 		
-		int noOfQs = 0;
-		if ((_props.getProperty("Queues") != null) &&  (!_props.getProperty("Queues").isEmpty())) {
-			noOfQs = new Integer(_props.getProperty("Queues"));
-		}
-		
-		String qAppBase;
-		String qBuffer;
-		
-		for (int i=0; i < urls.length; i++) {
-			for (int j=1; j <= noOfQs; j++) {
-				qAppBase = _props.getProperty("QAppBase" + j);
-				qAppBase = ((qAppBase == null) || (qAppBase.isEmpty())) ? "null" : qAppBase;
-				qBuffer = _props.getProperty("QBuffer" + j);
-				qBuffer = ((qBuffer == null) || (qBuffer.isEmpty())) ? "null" : qBuffer;
-				
-				if (urls[i].getFile().startsWith(qAppBase)) {
-					return qBuffer;
-				}
-			}
-		}
-		return null;
-	}
-	
 	private boolean useLinkedQ(Properties props) {
 		String useLinkedQ = System.getProperty("UseLinkedQ");
 		if ((useLinkedQ == null) || (useLinkedQ.equalsIgnoreCase(""))) {
@@ -203,14 +172,7 @@ public class EventSender implements IEventSender {
 		initEventSender(propfile);
 	}
 
-//	/**
-//	 * Constructor using properties object.
-//	 */
-//	public EventSender(Properties p) throws Exception {
-//		_props = p;
-//		debugLog = Logger.getLogger(EventSender.class);
-//		initializeDBConn(p);
-//	}
+
 
 	/**
 	 * Constructor Creation called by CBSEventLogger, ZGatewayEventLogger
@@ -234,22 +196,6 @@ public class EventSender implements IEventSender {
 		return es;
 	}
 	
-//	/**
-//	 * Constructor called by getInstance(String propName) used in CBSEventLogger and
-//	 * ZGatewayEventLogger
-//	 * 
-//	 * @param propfile
-//	 * @param initDBConn
-//	 * @throws Exception
-//	 */
-//	private EventSender(String propfile, boolean initDBConn) throws Exception {
-//		Properties p = new Properties();
-//		p.load(new FileInputStream(propfile));
-//		_props = p;
-//		if (initDBConn) {
-//			initializeDBConn(p);
-//		}
-//	}
 
 	public synchronized void finalize() throws Throwable {
 		destroy();
@@ -260,17 +206,8 @@ public class EventSender implements IEventSender {
 	 */
 	public synchronized void destroy() throws SQLException {
 		es = null;
-		stop();
 	}
 
-	/**
-	 * Should be called when the sender is no longer required. Closes the JMS
-	 * connection.
-	 * @throws IOException 
-	 */
-	public synchronized void stop() throws SQLException {
-		EventLogger.closeDBConn();
-	}
 
 
 	/*
@@ -303,7 +240,7 @@ public class EventSender implements IEventSender {
 		 try {
 			if (ev.validate()) {
 				debugLog.debug("up to logEvent(ev, accumNum)");
-				logEvent(ev, accumNum);
+				queueEvent(ev, accumNum);
 				debugLog.debug("done");
 			} else {
 				debugLog.warn("ignoring invalid event: " + ev);
@@ -595,69 +532,6 @@ public class EventSender implements IEventSender {
 		this._props = props;
 	}
 
-	// --------------------------------------------------------------------------------------------------
-	// EventLogger section -- migrated from the
-	// au.gov.nla.kinetica.events.EventLogger
-	// background: the separation of EventSender and EventLogger were originally
-	// designed to cater for sending events to a message queue (by EventSender)
-	// and
-	// then receiving and logging events to the database (by EventLogger).
-	// changes now to: the message queue is now removed, hence EventLogger is
-	// now merged into
-	// EventSender
-	// --------------------------------------------------------------------------------------------------
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see au.gov.nla.kinetica.rdc.events.IEventSender#wakeup()
-	 */
-
-	public synchronized void wakeup() throws Exception {
-		EventLogger.initializeDBConn(_props);
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see au.gov.nla.kinetica.rdc.events.IEventSender#sleep()
-	 */
-
-	public synchronized void sleep() {
-		EventLogger.closeDBConn();
-	}
-
-
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * au.gov.nla.kinetica.events.IEventLogger#logEvent(au.gov.nla.kinetica.
-	 * events.Event)
-	 */
-	public synchronized void logEvent(Event e) throws Exception {
-		logEvent(e, 1);
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * au.gov.nla.kinetica.events.IEventLogger#logEvent(au.gov.nla.kinetica.
-	 * events.Event, boolean, int)
-	 */
-	public synchronized void logEvent(Event e, int accumNum) throws Exception {
-		if (debugLog == null)
-			initEventSender(DEFAULT_PROPERTIES);
-		
-		if (!useLinkedQ(_props)) {
-			debugLog.debug("logging event:: " + e.toString() + ", " + accumNum);
-			EventLogger.logEvent(e, accumNum);
-		} else {
-			queueEvent(e, accumNum);
-		}
-	}
-
 	private void queueEvent(Event e, int accumNum) throws IOException {
 		String user = e.user();
 		String service = e.service();
@@ -696,62 +570,6 @@ public class EventSender implements IEventSender {
 		}
 	}
 	
-	public synchronized void fixMissingIntervals(String ptInTime) throws SQLException {
-		EventLogger.fixMissingIntervals(ptInTime);
-	}
-
-	public synchronized static void testStatus(Properties props, String propName) throws Exception {
-		EventSender es = null;		
-		// create ZG process status files
-		String procStatus = props.getProperty("ZGProcStatusFile");
-		String procStatusBak = props.getProperty("ZGProcStatusFileBak");
-		File psFile = new File(procStatus);
-		File psFileBak = new File(procStatusBak);
-		try {
-			if (psFile.exists())
-				FileUtils.copyFile(psFile, new File(procStatusBak));
-			else {
-				FileUtils.touch(psFile);
-				FileUtils.touch(psFileBak);
-			}
-		} catch (IOException e) {
-			System.out.println("Error: unable to access the ZG process status file: " + procStatus + ".");
-			e.printStackTrace();
-		}
-		
-		try {
-			// 1. test db conn through EventSender constructor
-			es = new EventSender(propName);
-			File logdir = new File(es.getProps().getProperty("ZGatewaylogdir"));
-			
-			// 2. test can access logdir for zgateway
-			if (logdir.canRead()) {
-				// write successful status to the process status file
-				FileUtils.writeStringToFile(psFile, "Process Status::db connection - fine::ZG log files access - fine.\n");
-			}
-			
-			es = null;
-		} catch (SQLException se) {
-			// write unable to connect to the process status file
-			try {
-				FileUtils.writeStringToFile(psFile, "Process Status::db connection - " + se.getMessage());
-			} catch (IOException e) {
-				System.out.println("Error: unable to access the ZG process status file: " + procStatus + ".");
-				e.printStackTrace();
-			}
-		} catch (Exception ge) {
-			// write unable to connect to the process status file
-			try {
-				FileUtils.writeStringToFile(psFile, "Process Status::db connection - fine::ZG log files access - " + ge.getMessage());
-			} catch (IOException e) {
-				System.out.println("Error: unable to access the ZG process status file: " + procStatus + ".");
-				e.printStackTrace();
-			}
-		}
-		
-	}
-	
-
 	
 	// ----------------------------------------------------------------------------
 	// Main testharness
@@ -777,39 +595,6 @@ public class EventSender implements IEventSender {
 			
 			if (flag.equalsIgnoreCase("InstanceCall")) {
 				testSenderInstanceCall();
-			}
-			
-			// flag to emulate a CBS instance
-			if (flag.equalsIgnoreCase("CBS")) {
-			  testSendCBSEvents(userName);	
-			}
-			
-			if (flag.equalsIgnoreCase("ZG")) {
-			// flag to emulate a ZG instance
-			  testSendZGEvents(userName);
-			}
-			
-			if (flag.equalsIgnoreCase("TS")) {
-				Properties p = new Properties();
-				
-				try {
-					p.load(EventSender.class.getClassLoader().getResourceAsStream(
-						"/RDC.properties"));
-				} catch (Exception e) {
-					try {
-						p.load(new FileInputStream("/RDC.properties"));
-					} catch (Exception ex) {
-						try {
-							p.load(new FileInputStream("RDC.properties"));
-						} catch (Exception ex1) {
-							p.load(EventSender.class.getClassLoader().getResourceAsStream("RDC.properties"));
-						}
-					}
-				}
-				System.out.println("DBURL is " + p.getProperty("DBurl"));
-				System.out.println("DBuser is " + p.getProperty("DBuser"));
-				System.out.println("DBpass is " + p.getProperty("DBpass"));
-				
 			}
 		}
 		} catch (Exception e) {
@@ -838,17 +623,4 @@ public class EventSender implements IEventSender {
 		}
 		
 	}
-
-	private static void testSendZGEvents(String username) throws Exception {
-		while (true) {
-			EventSender.sendEvent(username, "la:zGateway:nbd", 1);
-		}
-	}
-
-	private static void testSendCBSEvents(String username) throws Exception {
-		while (true) {
-			EventSender.sendEvent(username, "la:catalogue:client:search:nbd", 1);
-		}
-	}
-
 }

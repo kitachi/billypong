@@ -3,7 +3,7 @@
 # Description: This script runs the EventSender Test
 #
 
-ES_HOME=/Users/szhou/Documents/workspace/ES
+ES_HOME=.
 ES_APP_TRG=$ES_HOME/target
 ES_APP_LIB=$ES_HOME/target/lib
 export ES_HOME ES_APP_TRG ES_APP_LIB
